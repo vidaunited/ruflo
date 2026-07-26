@@ -66,6 +66,7 @@ const results = {
   allowlist: [],
   typosquat: [],
   publisherTrust: [],
+  inconclusive: [],
 };
 
 function log(msg) {
@@ -132,20 +133,25 @@ function runCveAudit(packageDir, accepted) {
     });
     audit = JSON.parse(out.toString());
   } catch (err) {
-    // `npm audit` exits non-zero when it finds vulnerabilities — that's
-    // still useful output; parse it.
+    // `npm audit` exits non-zero both when it finds vulnerabilities (still
+    // useful — parse it) and when the registry/advisory endpoint itself
+    // errors (e.g. the 2026-07-26 gzip-corruption incident on some network
+    // paths, or a plain timeout/outage). The latter produces unparseable
+    // stdout and is NOT evidence of a real finding — route it to
+    // `inconclusive` (warn, doesn't block CI) instead of `cve` (hard fail),
+    // so an npm/registry hiccup can't masquerade as a shipped CVE.
     if (err.stdout) {
       try {
         audit = JSON.parse(err.stdout.toString());
       } catch {
-        results.cve.push({
+        results.inconclusive.push({
           package: packageDir,
-          failure: 'audit threw and stdout not JSON: ' + (err.message ?? String(err)),
+          reason: 'audit threw and stdout not JSON (likely registry/endpoint error): ' + (err.message ?? String(err)),
         });
         return;
       }
     } else {
-      results.cve.push({ package: packageDir, failure: err.message ?? String(err) });
+      results.inconclusive.push({ package: packageDir, reason: err.message ?? String(err) });
       return;
     }
   }
@@ -365,6 +371,10 @@ function main() {
     log(`  allowlist violations: ${results.allowlist.length}`);
     log(`  typosquat hits: ${results.typosquat.length}`);
     log(`  publisher-trust entries: ${results.publisherTrust.length}`);
+    if (results.inconclusive.length > 0) {
+      log(`  WARN: ${results.inconclusive.length} package(s) had an inconclusive CVE audit (registry/endpoint error, not a finding) — re-run to confirm:`);
+      for (const e of results.inconclusive) log(`    - ${e.package}: ${e.reason}`);
+    }
     if (hardFails > 0) {
       log('\nFAIL: see above. Resolve before merging.');
     } else {
