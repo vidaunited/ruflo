@@ -13,16 +13,15 @@ name: Clone Tracker (14-day rolling)
 # clone API requires push access, so we'd have to give a stranger our token.
 # Running it ourselves keeps the data path inside the repo and signed.
 
+# FORK NOTE (vidaunited/ruflo): the schedule and push triggers are disabled
+# here. scripts/track-clones.mjs queries the traffic API of the ruvnet/*
+# repos, which this fork's GITHUB_TOKEN cannot read, so every automatic run
+# appended an all-zero snapshot and pushed it to main (13 consecutive
+# all-zero vectors in data/clone-data.ledger.json). Manual dispatch is kept
+# for anyone with a token that can read those repos.
 on:
-  schedule:
-    - cron: '17 6 */13 * *'
   workflow_dispatch:
     # Allow manual runs (e.g., after a release announcement to capture the spike).
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/track-clones.mjs'
-      - '.github/workflows/clone-tracker.yml'
 
 permissions:
   contents: write     # to push the snapshot commit
