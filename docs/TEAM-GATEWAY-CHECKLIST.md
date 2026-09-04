@@ -12,7 +12,7 @@ Run these checks before every merge to main:
 
 | Gate | Command | Blocks merge if |
 |------|---------|-----------------|
-| Lint | `npm run lint` | Any lint error |
+| Lint | `npm run lint` (alias of `npm run typecheck` — no linter is configured) | Any TypeScript error |
 | Type-check | `npx tsc --noEmit` | Any TypeScript error |
 | Unit tests | `npm test` | Fewer than 1999 passing |
 | Smoke tests | `node scripts/smoke-*.mjs` | Any exit code != 0 |

@@ -148,17 +148,22 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: ESLint code analysis
-        run: |
-          echo "🔍 Running ESLint..."
-          npm run lint -- --format=json --output-file=eslint-report.json || true
-          npm run lint
+      # No linter (eslint/biome) is configured anywhere in the repo, and the
+      # root `lint` script is an alias of `typecheck`; the real static gate
+      # is the v3 workspace typecheck, which needs pnpm on PATH for the
+      # inner `pnpm -r typecheck` and the v3 workspace installed.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 8.15.0
+
+      - name: Install v3 workspace (pnpm)
+        run: cd v3 && corepack pnpm@8.15.0 install --frozen-lockfile
 
       - name: TypeScript type checking
         run: |
           echo "🔍 Type checking..."
-          npm run typecheck || echo "⚠️ Type checking skipped (TypeScript compiler crash)"
-        continue-on-error: true
+          npm run typecheck
 
       - name: Format checking
         run: |
@@ -177,7 +182,6 @@ jobs:
         with:
           name: quality-reports-${{ needs.setup-verification.outputs.verification-id }}
           path: |
-            eslint-report.json
             complexity-report.json
           retention-days: 30
 

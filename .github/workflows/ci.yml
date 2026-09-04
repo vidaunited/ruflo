@@ -31,6 +31,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # The typecheck below is `corepack pnpm@8.15.0 typecheck` → v3's
+      # `pnpm -r typecheck`, whose inner bare `pnpm` must be on PATH
+      # (`sh: 1: pnpm: not found` otherwise — this job installs with npm).
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 8.15.0
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
