@@ -135,7 +135,22 @@ import {
 // the real @ruvector/rvagent-wasm import still happens. Local runs where
 // the WASM binary is built work fine; CI without postinstall doesn't.
 // See ruvllm-wasm.test.ts for the same pattern.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+//
+// Also skip when @ruvector/rvagent-wasm cannot be resolved at all: it is not
+// declared anywhere in the workspace, so on a plain checkout every test here
+// otherwise fails with "Cannot find module". The probe uses the REAL
+// node:module (the vi.mock above replaces it for the code under test).
+const __WASM_PKG = '@ruvector/rvagent-wasm';
+const { createRequire: __createRequire } =
+  await vi.importActual<typeof import('node:module')>('node:module');
+let __WASM_PKG_MISSING = false;
+try {
+  __createRequire(import.meta.url).resolve(__WASM_PKG);
+} catch {
+  __WASM_PKG_MISSING = true;
+  console.warn(`[agent-wasm.test] ${__WASM_PKG} is not installed — skipping its integration tests`);
+}
+const __SKIP_WASM_TESTS = __WASM_PKG_MISSING || process.env.CI === 'true';
 
 describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
   describe('detection and init', () => {

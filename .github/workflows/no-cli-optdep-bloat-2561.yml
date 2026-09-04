@@ -29,12 +29,15 @@ on:
       - '.github/workflows/no-cli-optdep-bloat-2561.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   guard:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Enforce CLI + ruflo optionalDependencies budget (#2561)
         run: |

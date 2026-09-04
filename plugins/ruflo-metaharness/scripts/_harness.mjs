@@ -272,6 +272,22 @@ export function rankSeverity(s) {
 }
 
 /**
+ * Map an upstream severity token to a SEVERITY_RANK key. Upstream now
+ * abbreviates inside the finding marker (`[MED ]` for a MEDIUM finding —
+ * corroborated by the same scan's `Result: MEDIUM` line), and an
+ * unmapped token would rank 0 via rankSeverity and silently pass every
+ * `--fail-on` gate. Resolves by unique prefix against the known keys;
+ * anything else is returned lowercased, unchanged.
+ */
+export function normalizeSeverityToken(token) {
+  const t = String(token ?? '').trim().toLowerCase();
+  if (!t) return t;
+  if (t in SEVERITY_RANK) return t;
+  const hits = Object.keys(SEVERITY_RANK).filter((k) => k.startsWith(t));
+  return hits.length === 1 ? hits[0] : t;
+}
+
+/**
  * iter 50 — parse `harness mcp-scan` text output into structured findings.
  *
  * Upstream `harness mcp-scan` emits plain text even with --json:
@@ -293,10 +309,15 @@ export function parseMcpScanText(stdout) {
   const lines = (stdout || '').split('\n');
   let current = null;
   for (const line of lines) {
-    const m = /^\s*\[([A-Z]+)\]\s+(.+?)\s*$/.exec(line);
+    // Upstream metaharness (observed 2026-09-04 on the currently published
+    // package's `harness mcp-scan`) pads the severity to a fixed width inside the
+    // brackets — `  [MED ] Risky shell allow-rule: …` — so the marker may
+    // carry trailing whitespace and an abbreviated name. The summary line
+    // (`Result: MEDIUM (2 findings, 0 high)`) is unchanged.
+    const m = /^\s*\[([A-Z]+)\s*\]\s+(.+?)\s*$/.exec(line);
     if (m) {
       if (current) findings.push(current);
-      current = { severity: m[1].toLowerCase(), message: m[2] };
+      current = { severity: normalizeSeverityToken(m[1]), message: m[2] };
     } else if (current && /^\s{6,}\S/.test(line)) {
       const cont = line.trim();
       if (cont) current.message += ' ' + cont;

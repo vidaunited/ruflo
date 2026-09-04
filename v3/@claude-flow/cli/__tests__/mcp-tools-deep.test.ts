@@ -20,27 +20,61 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 // Mock fs to prevent actual file I/O during tests
 vi.mock('node:fs', () => {
   const memStore = new Map<string, string>();
+  // fd-level surface used by src/fs-secure.ts writeFileAtomic (open → write →
+  // fsync → close → rename → chmod). session-tools / terminal-tools persist
+  // through it, so the mock must model it or their handlers throw.
+  const fds = new Map<number, string>();
+  let nextFd = 100;
   return {
     existsSync: vi.fn((p: string) => memStore.has(p)),
     readFileSync: vi.fn((p: string) => memStore.get(p) || '{}'),
     writeFileSync: vi.fn((p: string, d: string) => memStore.set(p, d)),
     mkdirSync: vi.fn(),
     readdirSync: vi.fn(() => []),
-    unlinkSync: vi.fn(),
+    unlinkSync: vi.fn((p: string) => memStore.delete(p)),
     statSync: vi.fn(() => ({ size: 100, isFile: () => true, isDirectory: () => false })),
+    openSync: vi.fn((p: string) => { const fd = nextFd++; fds.set(fd, p); return fd; }),
+    writeSync: vi.fn((fd: number, data: Buffer | string) => {
+      const p = fds.get(fd);
+      if (p !== undefined) memStore.set(p, data.toString());
+      return data.length;
+    }),
+    fsyncSync: vi.fn(),
+    closeSync: vi.fn((fd: number) => fds.delete(fd)),
+    renameSync: vi.fn((from: string, to: string) => {
+      if (memStore.has(from)) { memStore.set(to, memStore.get(from)!); memStore.delete(from); }
+    }),
+    chmodSync: vi.fn(),
   };
 });
 
 vi.mock('fs', () => {
   const memStore = new Map<string, string>();
+  // fd-level surface used by src/fs-secure.ts writeFileAtomic (open → write →
+  // fsync → close → rename → chmod). session-tools / terminal-tools persist
+  // through it, so the mock must model it or their handlers throw.
+  const fds = new Map<number, string>();
+  let nextFd = 100;
   return {
     existsSync: vi.fn((p: string) => memStore.has(p)),
     readFileSync: vi.fn((p: string) => memStore.get(p) || '{}'),
     writeFileSync: vi.fn((p: string, d: string) => memStore.set(p, d)),
     mkdirSync: vi.fn(),
     readdirSync: vi.fn(() => []),
-    unlinkSync: vi.fn(),
+    unlinkSync: vi.fn((p: string) => memStore.delete(p)),
     statSync: vi.fn(() => ({ size: 100, isFile: () => true, isDirectory: () => false })),
+    openSync: vi.fn((p: string) => { const fd = nextFd++; fds.set(fd, p); return fd; }),
+    writeSync: vi.fn((fd: number, data: Buffer | string) => {
+      const p = fds.get(fd);
+      if (p !== undefined) memStore.set(p, data.toString());
+      return data.length;
+    }),
+    fsyncSync: vi.fn(),
+    closeSync: vi.fn((fd: number) => fds.delete(fd)),
+    renameSync: vi.fn((from: string, to: string) => {
+      if (memStore.has(from)) { memStore.set(to, memStore.get(from)!); memStore.delete(from); }
+    }),
+    chmodSync: vi.fn(),
   };
 });
 

@@ -85,7 +85,9 @@ async function main() {
   //    `  [SEV] <message>` where SEV is uppercase letters in brackets.
   //    Pre-iter-50 we never asserted this — upstream changing to
   //    `* SEV: message` would have been undetectable.
-  const findingLineRegex = /^\s*\[([A-Z]+)\]\s+\S/m;
+  //    Upstream pads the marker (`[MED ]`) since 2026-09; allow trailing
+  //    whitespace inside the brackets, matching parseMcpScanText.
+  const findingLineRegex = /^\s*\[([A-Z]+)\s*\]\s+\S/m;
   const findingMatch = findingLineRegex.exec(stdout);
   results.push({
     check: 'finding line matches `[SEV] message` regex',

@@ -311,6 +311,28 @@ assert(noResult.summary === null, 'no Result: line → summary === null');
 const mixed = parseMcpScanText('  [Warn] Something\n  [HIGH] Other\n');
 assert(mixed.findings.length === 1,
   'strict regex skips mixed-case [Warn], captures [HIGH] only');
+
+// Real `harness mcp-scan` output captured from metaharness@latest on
+// 2026-09-04: the marker is padded to a fixed width (`[MED ]`) and
+// abbreviated; the Result line still says MEDIUM.
+const padded = parseMcpScanText(`harness mcp-scan — /home/user/ruflo
+
+  [MED ] Risky shell allow-rule: Bash(node .claude/*)
+         Allowing rm/curl/wget/sudo/ssh, or an unscoped script interpreter, broadly is dangerous; narrow the glob.
+  [MED ] Risky shell allow-rule: Bash(node:*)
+         Allowing rm/curl/wget/sudo/ssh, or an unscoped script interpreter, broadly is dangerous; narrow the glob.
+
+Result: MEDIUM (2 findings, 0 high)
+`);
+assert(padded.findings.length === 2, 'padded [MED ] markers → 2 findings');
+assert(padded.findings.every((f) => f.severity === 'medium'),
+  'padded MED normalised to medium (matches Result: MEDIUM)');
+assert(padded.findings[0].message.startsWith('Risky shell allow-rule: Bash(node .claude/*) Allowing'),
+  'padded marker keeps message + continuation');
+assert(padded.summary?.overallSeverity === 'medium' && padded.summary?.totalCount === 2,
+  'padded output summary parsed');
+assert(rankSeverity(padded.findings[0].severity) === SEVERITY_RANK.medium,
+  'normalised severity ranks as medium (would be 0 unmapped)');
 assert(mixed.findings[0].severity === 'high',
   'strict regex captured the uppercase entry');
 

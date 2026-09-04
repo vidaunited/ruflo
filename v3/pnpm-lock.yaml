@@ -385,10 +385,10 @@ importers:
   '@claude-flow/performance':
     dependencies:
       '@ruvector/attention':
-        specifier: latest
+        specifier: 0.1.4
         version: 0.1.4
       '@ruvector/sona':
-        specifier: latest
+        specifier: 0.1.5
         version: 0.1.5
     devDependencies:
       vitest:

@@ -219,8 +219,22 @@ vi.mock('node:module', () => ({
 // initial module evaluation — once vi.mock can replace the package itself
 // cleanly, this skip can come off.
 //
-// Skip in CI; run locally where WASM is built.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+// Skip in CI; run locally where WASM is built — and only when the package
+// can actually be resolved. @ruvector/ruvllm-wasm is not declared anywhere in
+// the workspace, so without this probe every test here fails with
+// "Cannot find module" on a plain checkout. The probe uses the REAL
+// node:module (the vi.mock above replaces it for the code under test).
+const __WASM_PKG = '@ruvector/ruvllm-wasm';
+const { createRequire: __createRequire } =
+  await vi.importActual<typeof import('node:module')>('node:module');
+let __WASM_PKG_MISSING = false;
+try {
+  __createRequire(import.meta.url).resolve(__WASM_PKG);
+} catch {
+  __WASM_PKG_MISSING = true;
+  console.warn(`[ruvllm-wasm.test] ${__WASM_PKG} is not installed — skipping its integration tests`);
+}
+const __SKIP_WASM_TESTS = __WASM_PKG_MISSING || process.env.CI === 'true';
 
 describe.skipIf(__SKIP_WASM_TESTS)('ruvllm-wasm integration', () => {
   beforeEach(() => {
