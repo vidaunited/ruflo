@@ -36,12 +36,15 @@ jobs:
           npm audit --production --audit-level=moderate || echo "⚠️ Production vulnerabilities found (non-blocking)"
         continue-on-error: true
         
-      - name: Lint code
-        run: npm run lint
+      # No linter is configured anywhere in the repo (the old `npm run lint`
+      # was `cd v3/@claude-flow/cli && npm run lint || true` against a package
+      # with no lint script — a guaranteed no-op). The real static gate is the
+      # v3 workspace typecheck, which needs the pnpm workspace installed.
+      - name: Install v3 workspace (pnpm)
+        run: cd v3 && corepack pnpm@8.15.0 install --frozen-lockfile
 
       - name: Type check
-        run: npm run typecheck || echo "⚠️ Type checking skipped (TypeScript compiler crash)"
-        continue-on-error: true
+        run: npm run typecheck
 
       - name: Check for outdated dependencies
         run: npm outdated || true
