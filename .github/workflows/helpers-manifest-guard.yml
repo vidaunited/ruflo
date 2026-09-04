@@ -29,6 +29,8 @@ on:
       - 'v3/@claude-flow/cli/scripts/sign-helpers.mjs'
       - 'v3/@claude-flow/cli/scripts/verify-helpers.mjs'
       - 'v3/@claude-flow/cli/package.json'
+  # Manual runs, so manifest drift already on main can be checked on demand.
+  workflow_dispatch:
 
 jobs:
   guard:
