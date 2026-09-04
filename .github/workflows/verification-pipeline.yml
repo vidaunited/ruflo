@@ -21,23 +21,27 @@ env:
   NODE_VERSION: '20'
   CACHE_VERSION: v1
 
+permissions:
+  contents: read
+
 jobs:
   # Pre-verification setup and validation
   setup-verification:
     name: 🚀 Setup Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       verification-id: ${{ steps.setup.outputs.verification-id }}
       test-matrix: ${{ steps.setup.outputs.test-matrix }}
       cache-key: ${{ steps.setup.outputs.cache-key }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -54,7 +58,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             node_modules
@@ -67,19 +71,20 @@ jobs:
   security-verification:
     name: 🛡️ Security Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: setup-verification
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             node_modules
@@ -108,7 +113,7 @@ jobs:
           npx audit-ci --config .audit-ci.json || true
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: security-reports-${{ needs.setup-verification.outputs.verification-id }}
           path: |
@@ -120,19 +125,20 @@ jobs:
   code-quality:
     name: 📝 Code Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: setup-verification
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             node_modules
@@ -167,7 +173,7 @@ jobs:
           npx complexity-report --format json --output complexity-report.json src/ || true
 
       - name: Upload quality reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: quality-reports-${{ needs.setup-verification.outputs.verification-id }}
           path: |
@@ -179,16 +185,17 @@ jobs:
   test-verification:
     name: 🧪 Test Verification (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     needs: [setup-verification, security-verification]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup-verification.outputs.test-matrix) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
@@ -231,7 +238,7 @@ jobs:
           
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results-${{ matrix.os }}-node${{ matrix.node }}-${{ needs.setup-verification.outputs.verification-id }}
           path: |
@@ -243,13 +250,14 @@ jobs:
   build-verification:
     name: 🏗️ Build Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [setup-verification, code-quality]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -288,10 +296,11 @@ jobs:
   docs-verification:
     name: 📚 Documentation Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: setup-verification
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Check documentation files
         run: |
@@ -311,14 +320,15 @@ jobs:
   performance-verification:
     name: ⚡ Performance Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [setup-verification, build-verification]
     if: github.event_name == 'push' || github.event.inputs.verification_mode == 'full'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -357,7 +367,7 @@ jobs:
           fi
 
       - name: Upload performance reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: performance-reports-${{ needs.setup-verification.outputs.verification-id }}
           path: |
@@ -369,6 +379,7 @@ jobs:
   verification-report:
     name: 📊 Verification Report
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs:
       - setup-verification
       - security-verification
@@ -379,7 +390,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Generate verification report
         run: |
@@ -408,7 +419,7 @@ jobs:
           cat verification-summary.md
 
       - name: Upload verification summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-summary-${{ needs.setup-verification.outputs.verification-id }}
           path: verification-summary.md
