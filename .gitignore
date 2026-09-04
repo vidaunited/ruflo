@@ -181,3 +181,9 @@ v3/@claude-flow/cli/plugins/
 # Runtime proven-config adoption state (per-install, not source)
 .claude/proven-config.json
 .claude/.proven-config-version
+
+# The v3 tree is a pnpm workspace (v3/pnpm-workspace.yaml: "@claude-flow/*");
+# an npm lockfile inside a workspace package is stray. Upstream still tracks
+# v3/package-lock.json and the per-plugin ones, so only the workspace
+# packages are covered here.
+v3/@claude-flow/*/package-lock.json
