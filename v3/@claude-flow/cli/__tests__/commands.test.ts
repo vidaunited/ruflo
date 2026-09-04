@@ -9,6 +9,9 @@ import { swarmCommand } from '../src/commands/swarm.js';
 import { memoryCommand } from '../src/commands/memory.js';
 import { configCommand } from '../src/commands/config.js';
 import type { CommandContext } from '../src/types.js';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // Mock MCP client
 vi.mock('../src/mcp-client.js', () => ({
@@ -676,22 +679,30 @@ describe('Config Commands', () => {
       const initCmd = configCommand.subcommands?.find(c => c.name === 'init');
       expect(initCmd).toBeDefined();
 
-      const result = await initCmd!.action!(ctx);
+      // Writes claude-flow.config.json under ctx.cwd (see the config set
+      // test for why the old `success === false` assertion was vacuous).
+      ctx.cwd = mkdtempSync(join(tmpdir(), 'cf-config-init-'));
+      try {
+        const result = await initCmd!.action!(ctx);
 
-      // #1425: config init is not yet implemented
-      expect(result.success).toBe(false);
-      expect(result.exitCode).toBe(1);
+        expect(result.success).toBe(true);
+      } finally {
+        rmSync(ctx.cwd, { recursive: true, force: true });
+      }
     });
 
     it('should initialize with V3 mode', async () => {
       const initCmd = configCommand.subcommands?.find(c => c.name === 'init');
 
-      ctx.flags = { v3: true, _: [] };
-      const result = await initCmd!.action!(ctx);
+      ctx.cwd = mkdtempSync(join(tmpdir(), 'cf-config-init-v3-'));
+      try {
+        ctx.flags = { v3: true, _: [] };
+        const result = await initCmd!.action!(ctx);
 
-      // #1425: config init is not yet implemented
-      expect(result.success).toBe(false);
-      expect(result.exitCode).toBe(1);
+        expect(result.success).toBe(true);
+      } finally {
+        rmSync(ctx.cwd, { recursive: true, force: true });
+      }
     });
   });
 
@@ -722,12 +733,18 @@ describe('Config Commands', () => {
       const setCmd = configCommand.subcommands?.find(c => c.name === 'set');
       expect(setCmd).toBeDefined();
 
-      ctx.flags = { key: 'swarm.maxAgents', value: '20', _: [] };
-      const result = await setCmd!.action!(ctx);
+      // Writes claude-flow.config.json under ctx.cwd. The old assertion
+      // (`success === false`, "#1425 not yet implemented") only held because
+      // '/test' is unwritable for a non-root user — as root it wrote /test/.
+      ctx.cwd = mkdtempSync(join(tmpdir(), 'cf-config-set-'));
+      try {
+        ctx.flags = { key: 'swarm.maxAgents', value: '20', _: [] };
+        const result = await setCmd!.action!(ctx);
 
-      // #1425: config set is not yet implemented
-      expect(result.success).toBe(false);
-      expect(result.exitCode).toBe(1);
+        expect(result.success).toBe(true);
+      } finally {
+        rmSync(ctx.cwd, { recursive: true, force: true });
+      }
     });
 
     it('should fail without key and value', async () => {
@@ -756,12 +773,15 @@ describe('Config Commands', () => {
       const resetCmd = configCommand.subcommands?.find(c => c.name === 'reset');
       expect(resetCmd).toBeDefined();
 
-      ctx.flags = { force: true, _: [] };
-      const result = await resetCmd!.action!(ctx);
+      ctx.cwd = mkdtempSync(join(tmpdir(), 'cf-config-reset-'));
+      try {
+        ctx.flags = { force: true, _: [] };
+        const result = await resetCmd!.action!(ctx);
 
-      // #1425: config reset is not yet implemented
-      expect(result.success).toBe(false);
-      expect(result.exitCode).toBe(1);
+        expect(result.success).toBe(true);
+      } finally {
+        rmSync(ctx.cwd, { recursive: true, force: true });
+      }
     });
   });
 
@@ -770,11 +790,14 @@ describe('Config Commands', () => {
       const exportCmd = configCommand.subcommands?.find(c => c.name === 'export');
       expect(exportCmd).toBeDefined();
 
-      const result = await exportCmd!.action!(ctx);
+      ctx.cwd = mkdtempSync(join(tmpdir(), 'cf-config-export-'));
+      try {
+        const result = await exportCmd!.action!(ctx);
 
-      // #1425: config export is not yet implemented
-      expect(result.success).toBe(false);
-      expect(result.exitCode).toBe(1);
+        expect(result.success).toBe(true);
+      } finally {
+        rmSync(ctx.cwd, { recursive: true, force: true });
+      }
     });
   });
 
