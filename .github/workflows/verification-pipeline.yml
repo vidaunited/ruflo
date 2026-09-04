@@ -160,6 +160,14 @@ jobs:
       - name: Install v3 workspace (pnpm)
         run: cd v3 && corepack pnpm@8.15.0 install --frozen-lockfile
 
+      # Typecheck resolves sibling workspace packages through their dist/
+      # declarations (@claude-flow/guidance → hooks, testing → memory/shared),
+      # so a fresh checkout fails with TS2307 unless the workspace is built
+      # first. v3-ci.yml's own typecheck job skips this and hides the same
+      # failure behind continue-on-error.
+      - name: Build v3 workspace (dist/ declarations for typecheck)
+        run: cd v3 && corepack pnpm@8.15.0 -r --no-bail run build
+
       - name: TypeScript type checking
         run: |
           echo "🔍 Type checking..."
