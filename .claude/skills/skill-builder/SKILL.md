@@ -1,5 +1,5 @@
 ---
-name: "Skill Builder"
+name: "skill-builder"
 description: "Create new Claude Code Skills with proper YAML frontmatter, progressive disclosure structure, and complete directory organization. Use when you need to build custom skills for specific workflows, generate skill templates, or understand the Claude Skills specification."
 ---
 
@@ -20,7 +20,7 @@ Creates production-ready Claude Code Skills with proper YAML frontmatter, progre
 ### Creating Your First Skill
 
 ```bash
-# 1. Create skill directory (MUST be at top level, NOT in subdirectories!)
+# 1. Create skill directory
 mkdir -p ~/.claude/skills/my-first-skill
 
 # 2. Create SKILL.md with proper format
@@ -126,12 +126,11 @@ tags: ["dev", "api"]   # NOT part of spec
 #### Minimal Skill (Required)
 ```
 ~/.claude/skills/                    # Personal skills location
-└── my-skill/                        # Skill directory (MUST be at top level!)
+└── my-skill/                        # Skill directory
     └── SKILL.md                     # REQUIRED: Main skill file
 ```
 
-**IMPORTANT**: Skills MUST be directly under `~/.claude/skills/[skill-name]/`.
-Claude Code does NOT support nested subdirectories or namespaces!
+Each skill is a top-level directory under `~/.claude/skills/` (personal) or `<project>/.claude/skills/` (project). A skill nested deeper is not discovered.
 
 #### Full-Featured Skill (Recommended)
 ```
